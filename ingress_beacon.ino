@@ -2,6 +2,7 @@
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
+#include <BLE2902.h>
 
 #include <Adafruit_NeoPixel.h>
 #include <Badge2020_TFT.h>
@@ -10,9 +11,9 @@
 #include "ingress.h"
 
 // UUIDs were generated randomly using https://www.uuidgenerator.net/
-#define FRI3D_SERVICE_UUID  "ea5c0c62-079e-11ee-be56-0242ac120002"
-#define FRI3D_COLOR_UUID    "086aece6-079f-11ee-be56-0242ac120002"
-#define FRI3D_PUSH_UUID     "3ed75c2e-079f-11ee-be56-0242ac120002"
+static BLEUUID FRI3D_SERVICE_UUID("ea5c0c62-079e-11ee-be56-0242ac120002");
+static BLEUUID FRI3D_COLOR_UUID  ("086aece6-079f-11ee-be56-0242ac120002");
+static BLEUUID FRI3D_PUSH_UUID   ("3ed75c2e-079f-11ee-be56-0242ac120002");
 
 Badge2020_TFT tft;
 scroll::ForwardScroll scr(tft);
@@ -25,7 +26,10 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 
 class PushCallbacks: public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic *pCharacteristic) {
+    void onWrite(BLECharacteristic *pCharacteristic) {      
+      std::string beschrijving = pCharacteristic->getValue();
+      scr.println("string pushed was ");
+      scr.println(beschrijving.c_str());
       uint8_t kleur = *(uint8_t *) pCharacteristic->getData();
       kamp.push(kleur);
       scr.print("push "); scr.println(Ingress::toCampName(kleur));
@@ -45,23 +49,32 @@ void initBeacon() {
                                          FRI3D_COLOR_UUID,
                                          BLECharacteristic::PROPERTY_READ
                                        );
+  colorCharacteristic->addDescriptor(new BLE2902());
+  colorCharacteristic->setValue("white");
   BLECharacteristic *pushCharacteristic = pService->createCharacteristic(
                                          FRI3D_PUSH_UUID,
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
+  pushCharacteristic->addDescriptor(new BLE2902());
   pushCharacteristic->setCallbacks(new PushCallbacks());
   pService->start();
 
   BLEAdvertising* pAdvertising = pServer->getAdvertising();
   pAdvertising->addServiceUUID(FRI3D_SERVICE_UUID);
   //appearance constant taken from https://btprodspecificationrefs.blob.core.windows.net/assigned-numbers/Assigned%20Number%20Types/Assigned_Numbers.pdf
-  pAdvertising->setAppearance(0x1441);
+  //pAdvertising->setAppearance(0x1441);
   
   BLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
   oAdvertisementData.setName("Fri3dBaconAdvertised");
+  oAdvertisementData.setShortName("FriedShort");
+  oAdvertisementData.setCompleteServices(FRI3D_SERVICE_UUID);
+  //oAdvertisementData.setPartialServices(FRI3D_SERVICE_UUID);
   oAdvertisementData.setAppearance(0x1441);
+  oAdvertisementData.setServiceData(FRI3D_SERVICE_UUID, "Fri3dIngress");
+  oAdvertisementData.addData("AddedData");
+  //oAdvertisementData.setManufacturerData("color=blue");
+
   pAdvertising->setAdvertisementData(oAdvertisementData);
-  
   pAdvertising->start();
 }
 
@@ -90,7 +103,7 @@ void setup() {
   initBadge();
   initBeacon();
 
-  scr.println("Fri3d Bacon started...");
+  scr.println("Fri3d Bacon v4.0");
 }
 
 void loop() {
