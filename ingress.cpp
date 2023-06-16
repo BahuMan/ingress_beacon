@@ -19,7 +19,7 @@ void Ingress::push(uint8_t pushColor)
     lastPushTime = millis();
     contested = true;
   }
-  else if ((millis() - lastPushTime) < CONTEST_MILLIS) 
+  else if ((millis() - lastPushTime) > CONTEST_MILLIS) 
   {
     contested = false;
   }

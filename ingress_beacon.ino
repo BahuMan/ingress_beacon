@@ -18,6 +18,7 @@ static BLEUUID FRI3D_PUSH_UUID   ("3ed75c2e-079f-11ee-be56-0242ac120002");
 Badge2020_TFT tft;
 scroll::ForwardScroll scr(tft);
 Ingress kamp;
+BLEAdvertising* pAdvertising;
 
 // definitions for 5 LEDs at bottom of badge
 #define LED_PIN    2
@@ -59,7 +60,7 @@ void initBeacon() {
   pushCharacteristic->setCallbacks(new PushCallbacks());
   pService->start();
 
-  BLEAdvertising* pAdvertising = pServer->getAdvertising();
+  pAdvertising = pServer->getAdvertising();
   pAdvertising->addServiceUUID(FRI3D_SERVICE_UUID);
   //appearance constant taken from https://btprodspecificationrefs.blob.core.windows.net/assigned-numbers/Assigned%20Number%20Types/Assigned_Numbers.pdf
   //pAdvertising->setAppearance(0x1441);
@@ -103,7 +104,7 @@ void setup() {
   initBadge();
   initBeacon();
 
-  scr.println("Fri3d Bacon v4.0");
+  scr.println("Fri3d Bacon v5.0");
 }
 
 void loop() {
@@ -130,4 +131,5 @@ void loop() {
 
   strip.show();
   delay(100);
+  if (((millis()/1000UL) % 30) == 0) pAdvertising->start();
 }
